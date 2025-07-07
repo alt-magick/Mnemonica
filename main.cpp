@@ -152,7 +152,7 @@ bool runSimilarityQuiz(const std::string& answersFileName) {
                 << "\033[37m\nJump to: \n\n> "; // back to white prompt
             std::string searchTerm;
             std::getline(std::cin, searchTerm);
-
+            std::cout << "\n";
             if (checkForMenuOrQuit(searchTerm)) return true;
 
             if (searchTerm.empty()) {
