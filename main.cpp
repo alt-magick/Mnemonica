@@ -412,7 +412,7 @@ int main(int argc, char* argv[]) {
         std::cout << "\033[37mChoose a program:\n\n";
         std::cout << "1. Memory Houses\n";
         std::cout << "2. Memory Hints\n";
-        std::cout << "3. List All Cards\n";
+        std::cout << "3. Card Numbers\n";
         std::cout << "4. Quit\n\n> ";
 
         int choice = 0;
