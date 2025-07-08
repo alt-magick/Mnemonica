@@ -110,11 +110,46 @@ bool runSimilarityQuiz(const std::string& answersFileName) {
         return false;
     }
 
-    int fileLineIndex = 0;
     int questionNumber = 0;
+    int fileLineIndex = questionIndices[0];
     int planetNumber = 0;
 
-    while (fileLineIndex < answers.size() && questionNumber < questionIndices.size()) {
+    while (true) {
+        if (fileLineIndex >= answers.size() || questionNumber >= questionIndices.size()) {
+            // User finished all questions
+            std::cout << "\033[37mYou remembered everything!\n";
+
+            std::cout << "\nJump to: \n\n> ";
+            std::string jumpInput;
+            std::getline(std::cin, jumpInput);
+            if (checkForMenuOrQuit(jumpInput)) return true;
+            if (jumpInput.empty()) {
+                // Exit the quiz normally
+                break;
+            }
+
+            int foundLine = findNearestSection(answers, 0, jumpInput);
+            if (foundLine != -1) {
+                std::cout << "\n\033[36m" << answers[foundLine] << "\033[37m\n\n";
+                for (int i = 0; i < questionIndices.size(); ++i) {
+                    if (questionIndices[i] >= foundLine) {
+                        questionNumber = i;
+                        fileLineIndex = questionIndices[i];
+                        break;
+                    }
+                }
+                planetNumber = 0;
+
+                // Continue quiz from jump position
+                continue;
+            }
+            else {
+                std::cout << "\n\033[37mNo matching section found.\n\n";
+                // Loop back to jump prompt
+                continue;
+            }
+        }
+
         if (!answers[fileLineIndex].empty() && answers[fileLineIndex][0] == '#') {
             std::cout << "\n\033[36m" << answers[fileLineIndex] << "\033[37m\n\n";
             fileLineIndex++;
@@ -160,7 +195,7 @@ bool runSimilarityQuiz(const std::string& answersFileName) {
                 int foundLine = findNearestSection(answers, fileLineIndex, searchTerm);
                 if (foundLine != -1) {
                     for (int i = 0; i < questionIndices.size(); ++i) {
-                        if (questionIndices[i] > foundLine) {
+                        if (questionIndices[i] >= foundLine) {
                             questionNumber = i;
                             fileLineIndex = questionIndices[i];
                             break;
@@ -176,26 +211,6 @@ bool runSimilarityQuiz(const std::string& answersFileName) {
                     planetNumber = 0;
                 }
             }
-        }
-    }
-
-    while (true) {
-        std::cout << "\033[37mYou remembered everything!\n";
-        std::cout << "\nJump to: \n\n> ";
-        std::string jumpInput;
-        std::getline(std::cin, jumpInput);
-        if (checkForMenuOrQuit(jumpInput)) return true;
-        if (jumpInput.empty()) break;
-
-        int foundLine = findNearestSection(answers, 0, jumpInput);
-        if (foundLine != -1) {
-            std::cout << "\n\033[36m" << answers[foundLine] << "\033[37m\n\n";
-            questionNumber = 0;
-            fileLineIndex = questionIndices[0];
-            planetNumber = 0;
-        }
-        else {
-            std::cout << "\n\033[37mNo matching section found.\n\n";
         }
     }
 
