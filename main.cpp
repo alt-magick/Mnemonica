@@ -29,29 +29,6 @@ bool checkForMenuOrQuit(const std::string& input) {
     return false;
 }
 
-double similarityPercentage(const std::string& s1, const std::string& s2) {
-    const size_t len1 = s1.size();
-    const size_t len2 = s2.size();
-
-    std::vector<std::vector<int>> dp(len1 + 1, std::vector<int>(len2 + 1));
-
-    for (size_t i = 0; i <= len1; ++i) dp[i][0] = i;
-    for (size_t j = 0; j <= len2; ++j) dp[0][j] = j;
-
-    for (size_t i = 1; i <= len1; ++i) {
-        for (size_t j = 1; j <= len2; ++j) {
-            dp[i][j] = std::min({
-                dp[i - 1][j] + 1,
-                dp[i][j - 1] + 1,
-                dp[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1)
-                });
-        }
-    }
-
-    int maxLen = std::max(len1, len2);
-    return 100.0 - (static_cast<double>(dp[len1][len2]) / maxLen * 100.0);
-}
-
 std::string toLower(const std::string& str) {
     std::string result = str;
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -79,6 +56,29 @@ int findNearestSection(const vector<string>& answers, int currentLine, const str
     }
 
     return bestLine;
+}
+
+double similarityPercentage(const std::string& s1, const std::string& s2) {
+    const size_t len1 = s1.size();
+    const size_t len2 = s2.size();
+
+    std::vector<std::vector<int>> dp(len1 + 1, std::vector<int>(len2 + 1));
+
+    for (size_t i = 0; i <= len1; ++i) dp[i][0] = i;
+    for (size_t j = 0; j <= len2; ++j) dp[0][j] = j;
+
+    for (size_t i = 1; i <= len1; ++i) {
+        for (size_t j = 1; j <= len2; ++j) {
+            dp[i][j] = std::min({
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1)
+                });
+        }
+    }
+
+    int maxLen = std::max(len1, len2);
+    return 100.0 - (static_cast<double>(dp[len1][len2]) / maxLen * 100.0);
 }
 
 bool runSimilarityQuiz(const std::string& answersFileName) {
@@ -179,23 +179,156 @@ bool runSimilarityQuiz(const std::string& answersFileName) {
         }
     }
 
-    std::cout << "\033[37mYou remembered everything!\n";
+    while (true) {
+        std::cout << "\033[37mYou remembered everything!\n";
+        std::cout << "\nJump to: \n\n> ";
+        std::string jumpInput;
+        std::getline(std::cin, jumpInput);
+        if (checkForMenuOrQuit(jumpInput)) return true;
+        if (jumpInput.empty()) break;
 
-    std::cout << "\nJump to: \n\n> ";
-    std::string finalJump;
-    std::getline(std::cin, finalJump);
-
-    if (!checkForMenuOrQuit(finalJump) && !finalJump.empty()) {
-        int foundLine = findNearestSection(answers, 0, finalJump);
+        int foundLine = findNearestSection(answers, 0, jumpInput);
         if (foundLine != -1) {
-            int newQuestionNumber = 0;
-            for (int i = 0; i < questionIndices.size(); ++i) {
-                if (questionIndices[i] > foundLine) {
-                    newQuestionNumber = i;
-                    break;
+            std::cout << "\n\033[36m" << answers[foundLine] << "\033[37m\n\n";
+            questionNumber = 0;
+            fileLineIndex = questionIndices[0];
+            planetNumber = 0;
+        }
+        else {
+            std::cout << "\n\033[37mNo matching section found.\n\n";
+        }
+    }
+
+    return false;
+}
+
+const int NUM_CARDS = 52;
+
+bool loadCardsFromFile(const std::string& filename, std::vector<std::string>& cards) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "\033[37mError: Could not open file '" << filename << "'\n";
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t firstNonSpace = line.find_first_not_of(" \t");
+        if (firstNonSpace == std::string::npos) continue;
+        if (line[firstNonSpace] == '#') continue;
+
+        size_t lastNonSpace = line.find_last_not_of(" \t");
+        std::string trimmed = line.substr(firstNonSpace, lastNonSpace - firstNonSpace + 1);
+        if (!trimmed.empty()) cards.push_back(trimmed);
+    }
+
+    return cards.size() == NUM_CARDS;
+}
+
+bool runCardMemoryQuiz(const std::string& filename) {
+    std::vector<std::string> cards;
+    if (!loadCardsFromFile(filename, cards)) {
+        std::cerr << "\033[37mError: Invalid card file.\n";
+        return false;
+    }
+
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    std::vector<int> startPositions(NUM_CARDS);
+    for (int i = 0; i < NUM_CARDS; ++i) startPositions[i] = i;
+    std::random_shuffle(startPositions.begin(), startPositions.end());
+
+    int currentRound = 0;
+    int previewCount = 0;
+    bool askPreviewCount = true;
+
+    while (true) {
+        if (askPreviewCount) {
+            std::cout << "\033[37mType shuffle to mix the cards\n";
+            std::cout << "\nNumber of Hints:\n\n>> ";
+            std::string input;
+            std::getline(std::cin, input);
+
+            if (checkForMenuOrQuit(input)) return true;
+
+            if (input == "shuffle") {
+                cards.clear();
+                if (!loadCardsFromFile(filename, cards)) {
+                    std::cerr << "\033[37mError: Invalid card file.\n";
+                    return false;
                 }
+                for (int i = 0; i < NUM_CARDS; ++i) startPositions[i] = i;
+                std::random_shuffle(startPositions.begin(), startPositions.end());
+
+                currentRound = 0;
+                askPreviewCount = true;
+                clearScreen();
+                std::cout << "\033[37mCards shuffled!\n\n";
+                continue;
             }
-            runSimilarityQuiz(answersFileName);
+
+            try {
+                previewCount = std::stoi(input);
+            }
+            catch (...) {
+                previewCount = 1;
+            }
+
+            if (previewCount < 1) previewCount = 1;
+            if (previewCount > NUM_CARDS) previewCount = NUM_CARDS;
+            clearScreen();
+            askPreviewCount = false;
+        }
+
+        if (currentRound >= NUM_CARDS) {
+            std::cout << "\033[37mCongratulations! You have completed all 52 rounds.\n";
+            return false;
+        }
+
+        int start = startPositions[currentRound];
+
+        std::cout << "\n\033[37mCard " << (currentRound + 1) << " of " << NUM_CARDS << ":\n\n";
+
+        for (int i = 0; i < previewCount; ++i) {
+            int cardIndex = (start - previewCount + i + NUM_CARDS) % NUM_CARDS;
+            std::cout << cards[cardIndex];
+            if (i < previewCount - 1) std::cout << ", ";
+        }
+
+        std::cout << "\n\n>> ";
+        std::string userAnswer;
+        std::getline(std::cin, userAnswer);
+
+        if (checkForMenuOrQuit(userAnswer)) return true;
+
+        if (userAnswer == "shuffle") {
+            cards.clear();
+            if (!loadCardsFromFile(filename, cards)) {
+                std::cerr << "\033[37mError: Invalid card file.\n";
+                return false;
+            }
+            for (int i = 0; i < NUM_CARDS; ++i) startPositions[i] = i;
+            std::random_shuffle(startPositions.begin(), startPositions.end());
+
+            currentRound = 0;
+            askPreviewCount = true;
+            clearScreen();
+            std::cout << "\033[37mCards shuffled!\n";
+            continue;
+        }
+
+        if (userAnswer == cards[start % NUM_CARDS]) {
+            std::cout << "\n\033[32mCorrect!\n\n\033[37m";
+            currentRound++;
+        }
+        else {
+            std::cout << "\n\033[31mIncorrect. Correct answer: " << cards[start % NUM_CARDS] << "\n\n\033[37m";
+            std::cout << "\nPress enter to continue...";
+            std::getline(std::cin, userAnswer);
+            if (checkForMenuOrQuit(userAnswer)) return true;
+            clearScreen();
+            currentRound = 0;
+            askPreviewCount = true;
         }
     }
 
@@ -230,6 +363,11 @@ int main(int argc, char* argv[]) {
 
         if (choice == 1) {
             if (!runSimilarityQuiz(filename)) {
+                std::cout << "\n\033[37mProgram complete.\n";
+            }
+        }
+        else if (choice == 2) {
+            if (!runCardMemoryQuiz(filename)) {
                 std::cout << "\n\033[37mProgram complete.\n";
             }
         }
