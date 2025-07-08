@@ -290,7 +290,7 @@ bool runCardMemoryQuiz(const std::string& filename) {
             }
 
             if (previewCount < 1) previewCount = 1;
-            if (previewCount > NUM_CARDS) previewCount = NUM_CARDS;
+            if (previewCount > NUM_CARDS - 1) previewCount = NUM_CARDS - 1;  // Leave room for the target card
             clearScreen();
             askPreviewCount = false;
         }
@@ -300,17 +300,18 @@ bool runCardMemoryQuiz(const std::string& filename) {
             return false;
         }
 
-        int start = startPositions[currentRound];
+        int currentIndex = startPositions[currentRound];
 
         std::cout << "\n\033[37mCard " << (currentRound + 1) << " of " << NUM_CARDS << ":\n\n";
 
-        for (int i = 0; i < previewCount; ++i) {
-            int cardIndex = (start - previewCount + i + NUM_CARDS) % NUM_CARDS;
-            std::cout << cards[cardIndex];
-            if (i < previewCount - 1) std::cout << ", ";
+        // Show previous cards as history (not including the target card)
+        for (int i = previewCount; i >= 1; --i) {
+            int historyIndex = (currentIndex - i + NUM_CARDS) % NUM_CARDS;
+            std::cout << cards[historyIndex];
+            if (i > 1) std::cout << ", ";
         }
 
-        std::cout << "\n\n>> ";
+        std::cout << "\n\nWhat comes next?\n\n>> ";
         std::string userAnswer;
         std::getline(std::cin, userAnswer);
 
@@ -332,13 +333,15 @@ bool runCardMemoryQuiz(const std::string& filename) {
             continue;
         }
 
-        if (userAnswer == cards[start % NUM_CARDS]) {
+        std::string correctAnswer = cards[currentIndex];
+
+        if (toLower(userAnswer) == toLower(correctAnswer)) {
             std::cout << "\n\033[32mCorrect!\n\n\033[37m";
             currentRound++;
         }
         else {
-            std::cout << "\n\033[31mIncorrect. Correct answer: " << cards[start % NUM_CARDS] << "\n\n\033[37m";
-            std::cout << "\nPress enter to continue...";
+            std::cout << "\n\033[31mIncorrect. Correct answer: " << correctAnswer << "\n\n\033[37m";
+            std::cout << "\n\033[37mPress enter to continue...";
             std::getline(std::cin, userAnswer);
             if (checkForMenuOrQuit(userAnswer)) return true;
             clearScreen();
@@ -389,7 +392,7 @@ void listAllCards(const std::string& filename) {
             std::cout << "\n\033[31mIncorrect. Card " << (idx + 1) << " is " << correctAnswer << ".\n";
         }
 
-        std::cout << "\nPress Enter to continue...\n";
+        std::cout << "\n\033[37mPress Enter to continue...\n";
         std::getline(std::cin, userAnswer);
         if (checkForMenuOrQuit(userAnswer)) return;
     }
