@@ -335,6 +335,54 @@ bool runCardMemoryQuiz(const std::string& filename) {
     return false;
 }
 
+void listAllCards(const std::string& filename) {
+    std::vector<std::string> cards;
+    if (!loadCardsFromFile(filename, cards)) {
+        std::cerr << "\033[37mError: Could not load cards.\n";
+        return;
+    }
+
+    clearScreen();
+    std::cout << "\033[37mAll Cards:\n\n";
+    for (size_t i = 0; i < cards.size(); ++i) {
+        std::cout << (i + 1) << ". " << cards[i] << "\n";
+    }
+
+    std::cout << "\nPress Enter to start the quiz or type \"menu\" to return...\n";
+    std::string input;
+    std::getline(std::cin, input);
+    if (checkForMenuOrQuit(input)) return;
+
+    // Prepare randomized order
+    std::vector<int> indices(cards.size());
+    for (int i = 0; i < cards.size(); ++i) indices[i] = i;
+    std::random_shuffle(indices.begin(), indices.end());
+
+    for (int idx : indices) {
+        clearScreen();
+        std::cout << "\033[37mWhat is card number " << (idx + 1) << "?\n\n> ";
+        std::string userAnswer;
+        std::getline(std::cin, userAnswer);
+
+        if (checkForMenuOrQuit(userAnswer)) return;
+
+        std::string correctAnswer = cards[idx];
+        if (toLower(userAnswer) == toLower(correctAnswer)) {
+            std::cout << "\n\033[32mCorrect! Card " << (idx + 1) << " is " << correctAnswer << ".\n";
+        }
+        else {
+            std::cout << "\n\033[31mIncorrect. Card " << (idx + 1) << " is " << correctAnswer << ".\n";
+        }
+
+        std::cout << "\nPress Enter to continue...\n";
+        std::getline(std::cin, userAnswer);
+        if (checkForMenuOrQuit(userAnswer)) return;
+    }
+
+    std::cout << "\n\033[37mAll cards completed! Press Enter to return to menu...\n";
+    std::getline(std::cin, input);
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "\033[37mUsage: " << argv[0] << " <input_file>\n";
@@ -349,12 +397,13 @@ int main(int argc, char* argv[]) {
         std::cout << "\033[37mChoose a program:\n\n";
         std::cout << "1. Memory Houses\n";
         std::cout << "2. Memory Hints\n";
-        std::cout << "3. Quit\n\n> ";
+        std::cout << "3. List All Cards\n";
+        std::cout << "4. Quit\n\n> ";
 
         int choice = 0;
         std::string input;
         std::getline(std::cin, input);
-        if (input == ":quit" || input == "3") break;
+        if (input == ":quit" || input == "4") break;
         choice = std::stoi(input);
 
         clearScreen();
@@ -370,6 +419,9 @@ int main(int argc, char* argv[]) {
             if (!runCardMemoryQuiz(filename)) {
                 std::cout << "\n\033[37mProgram complete.\n";
             }
+        }
+        else if (choice == 3) {
+            listAllCards(filename);
         }
         else {
             std::cout << "\n\033[37mInvalid choice.\n";
