@@ -1,6 +1,6 @@
 # Mnemonica
 
-This program has three modes, and they need a list for you to memorize<br><br>
+This program has three modes.<br><br>
 Run program.exe mnemonica.txt as an example. mnemonica.txt is the Mnemonica card stack<br><br>
 You can devide the text file into sections with the # string. Right now mnemonica.txt is devided into four sections 
 Instead of restarting the program from the beginning you can jump to one of those sections by typing part or all of the section name<br><br>
