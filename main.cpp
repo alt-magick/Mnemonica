@@ -366,40 +366,55 @@ void listAllCards(const std::string& filename) {
         std::cout << (i + 1) << ". " << cards[i] << "\n";
     }
 
-    std::cout << "\nPress Enter to start the quiz or type \"menu\" to return...\n";
-    std::string input;
-    std::getline(std::cin, input);
-    if (checkForMenuOrQuit(input)) return;
+    std::cout << "\nType \"menu\" to return, \"quit\" to exit, or \"shuffle\" to reshuffle anytime.\n";
+    std::cout << "\nStarting quiz...\n";
 
-    // Prepare randomized order
     std::vector<int> indices(cards.size());
     for (int i = 0; i < cards.size(); ++i) indices[i] = i;
     std::random_shuffle(indices.begin(), indices.end());
 
-    for (int idx : indices) {
-        clearScreen();
-        std::cout << "\033[37mWhat is card number " << (idx + 1) << "?\n\n> ";
+    int currentIndex = 0;
+
+    while (true) {
+        if (currentIndex >= indices.size()) {
+            clearScreen();
+            std::cout << "\n\033[37mAll cards completed! Returning to menu...\n";
+            return;
+        }
+
+        int cardIndex = indices[currentIndex];
+
+        
+        std::cout << "\n\033[37mWhat is card number " << (cardIndex + 1) << "?\n\n> ";
         std::string userAnswer;
         std::getline(std::cin, userAnswer);
 
         if (checkForMenuOrQuit(userAnswer)) return;
 
-        std::string correctAnswer = cards[idx];
+        if (toLower(userAnswer) == "shuffle") {
+            std::random_shuffle(indices.begin(), indices.end());
+            currentIndex = 0;
+            clearScreen();
+            std::cout << "\033[37mCards reshuffled!\n";
+            continue;
+        }
+
+        std::string correctAnswer = cards[cardIndex];
+
         if (toLower(userAnswer) == toLower(correctAnswer)) {
-            std::cout << "\n\033[32mCorrect! Card " << (idx + 1) << " is " << correctAnswer << ".\n";
+            std::cout << "\n\033[32mCorrect! Card " << (cardIndex + 1) << " is " << correctAnswer << ".\n";
+            currentIndex++;  // move forward
         }
         else {
-            std::cout << "\n\033[31mIncorrect. Card " << (idx + 1) << " is " << correctAnswer << ".\n";
+            std::cout << "\n\033[31mIncorrect. Card " << (cardIndex + 1) << " is " << correctAnswer << ".\n";
+            std::cout << "\n\033[37mRestarting from beginning of sequence...\n";
+            currentIndex = 0;
         }
 
-        std::cout << "\n\033[37mPress Enter to continue...\n";
-        std::getline(std::cin, userAnswer);
-        if (checkForMenuOrQuit(userAnswer)) return;
+        // No waiting—loop immediately continues to next question
     }
-
-    std::cout << "\n\033[37mAll cards completed! Press Enter to return to menu...\n";
-    std::getline(std::cin, input);
 }
+
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
